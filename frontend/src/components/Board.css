@@ -1,0 +1,29 @@
+.board {
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  padding: var(--spacing-lg);
+}
+
+.columns-container {
+  display: flex;
+  gap: var(--spacing-md);
+  height: 100%;
+  padding-bottom: var(--spacing-md);
+}
+
+/* Responsive - enable horizontal scroll on small screens */
+@media (max-width: 768px) {
+  .board {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
+    padding: var(--spacing-md);
+  }
+  
+  .columns-container {
+    gap: var(--spacing-sm);
+  }
+}
+

@@ -1,0 +1,142 @@
+.column {
+  flex: 1;
+  min-width: 200px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-fast);
+  overflow: hidden;
+}
+
+.column-over {
+  background: var(--color-border);
+  box-shadow: inset 0 0 0 3px var(--color-primary);
+}
+
+.column-done {
+  opacity: 0.85;
+}
+
+.column-done .card {
+  opacity: 0.7;
+}
+
+.column-header {
+  padding: var(--spacing-md);
+  flex-shrink: 0;
+}
+
+.column-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.column-count {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.column-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 var(--spacing-md) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Add card form */
+.add-card-form {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-card);
+}
+
+.add-card-form input {
+  width: 100%;
+  margin-bottom: var(--spacing-sm);
+  min-height: var(--touch-target);
+}
+
+.add-card-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.add-card-actions button {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  min-height: var(--touch-target);
+  transition: all var(--transition-fast);
+}
+
+.btn-add {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-add:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn-cancel {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+}
+
+.btn-cancel:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+/* Add card button */
+.add-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  min-height: var(--touch-target);
+  transition: all var(--transition-fast);
+  border: 2px dashed var(--color-border);
+}
+
+.add-card-btn:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-text-light);
+}
+
+.add-icon {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* Responsive - fixed width on mobile for horizontal scrolling */
+@media (max-width: 768px) {
+  .column {
+    flex: 0 0 280px;
+    min-width: 280px;
+    scroll-snap-align: start;
+  }
+}
+

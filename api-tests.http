@@ -1,0 +1,111 @@
+### Family Kanban Board API Tests
+### Use with REST Client extension for VS Code
+
+@baseUrl = http://localhost:3000
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Get Full Board
+GET {{baseUrl}}/api/board
+
+### Update Board Settings
+PUT {{baseUrl}}/api/board
+Content-Type: application/json
+
+{
+    "name": "Family HQ",
+    "theme": "light"
+}
+
+### Get All Columns
+GET {{baseUrl}}/api/columns
+
+### Create a New Column
+POST {{baseUrl}}/api/columns
+Content-Type: application/json
+
+{
+    "title": "Waiting",
+    "orderIndex": 4
+}
+
+### Update a Column
+PUT {{baseUrl}}/api/columns/1
+Content-Type: application/json
+
+{
+    "title": "Backlog",
+    "orderIndex": 0
+}
+
+### Delete a Column
+DELETE {{baseUrl}}/api/columns/5
+
+### Get All Cards
+GET {{baseUrl}}/api/cards
+
+### Create a New Card
+POST {{baseUrl}}/api/cards
+Content-Type: application/json
+
+{
+    "columnId": 1,
+    "title": "Buy groceries",
+    "description": "Milk, eggs, bread",
+    "color": "#81b29a",
+    "emoji": "🛒",
+    "tags": ["shopping", "urgent"],
+    "dueDate": "2025-12-06"
+}
+
+### Update a Card
+PUT {{baseUrl}}/api/cards/1
+Content-Type: application/json
+
+{
+    "title": "Buy groceries (Updated)",
+    "columnId": 2
+}
+
+### Delete a Card
+DELETE {{baseUrl}}/api/cards/1
+
+### Reorder Cards (Move card between columns)
+POST {{baseUrl}}/api/cards/reorder
+Content-Type: application/json
+
+{
+    "orders": [
+        {"id": 1, "columnId": 2, "orderIndex": 0},
+        {"id": 2, "columnId": 2, "orderIndex": 1}
+    ]
+}
+
+### Get All Members
+GET {{baseUrl}}/api/members
+
+### Create a New Member
+POST {{baseUrl}}/api/members
+Content-Type: application/json
+
+{
+    "name": "Dad",
+    "color": "#6b9ac4"
+}
+
+### Update a Member
+PUT {{baseUrl}}/api/members/1
+Content-Type: application/json
+
+{
+    "name": "Mom",
+    "color": "#e07a5f"
+}
+
+### Delete a Member
+DELETE {{baseUrl}}/api/members/1
+
+### Export Board Data
+GET {{baseUrl}}/api/board/export
+
