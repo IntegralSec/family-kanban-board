@@ -24,22 +24,32 @@ function Card({ card, member, onClick, isDragging }) {
         opacity: isSortableDragging ? 0.5 : 1
     };
 
-    const isOverdue = card.due_date && new Date(card.due_date) < new Date() && 
-        new Date(card.due_date).toDateString() !== new Date().toDateString();
-    
-    const isToday = card.due_date && 
-        new Date(card.due_date).toDateString() === new Date().toDateString();
-
-    const formatDate = (dateStr) => {
+    // Parse date string (YYYY-MM-DD) as local date to avoid timezone issues
+    const parseLocalDate = (dateStr) => {
         if (!dateStr) return null;
-        const date = new Date(dateStr);
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        // Handle both ISO format (YYYY-MM-DDTHH:mm:ss) and date-only (YYYY-MM-DD)
+        const dateOnly = dateStr.split('T')[0];
+        const [year, month, day] = dateOnly.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    };
 
-        if (date.toDateString() === today.toDateString()) {
+    const dueDate = parseLocalDate(card.due_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const tomorrow = new Date(todayDateOnly);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const isOverdue = dueDate && dueDate < todayDateOnly;
+    
+    const isToday = dueDate && 
+        dueDate.getTime() === todayDateOnly.getTime();
+
+    const formatDate = (date) => {
+        if (!date) return null;
+        if (date.getTime() === todayDateOnly.getTime()) {
             return 'Today';
-        } else if (date.toDateString() === tomorrow.toDateString()) {
+        } else if (date.getTime() === tomorrow.getTime()) {
             return 'Tomorrow';
         } else {
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -110,7 +120,7 @@ function Card({ card, member, onClick, isDragging }) {
                         {card.due_date && (
                             <div className={`card-due ${isOverdue ? 'overdue' : ''} ${isToday ? 'today' : ''}`}>
                                 <span className="due-icon">📅</span>
-                                <span className="due-date">{formatDate(card.due_date)}</span>
+                                <span className="due-date">{formatDate(dueDate)}</span>
                             </div>
                         )}
                     </div>
