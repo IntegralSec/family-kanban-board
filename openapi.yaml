@@ -1,0 +1,1125 @@
+openapi: 3.0.3
+info:
+  title: Family Kanban Board API
+  description: |
+    A lightweight personal/family Kanban board API designed for Raspberry Pi deployment.
+    
+    This API provides CRUD operations for managing a single household Kanban board with:
+    - Columns (Backlog, Today, In Progress, Done, etc.)
+    - Cards (Tasks) with assignees, due dates, tags, and emojis
+    - Family members for task assignment
+    
+    **Note:** This API is designed for trusted LAN environments and does not require authentication.
+  version: 1.0.0
+  contact:
+    name: Family Kanban
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: http://{host}:{port}
+    description: Custom deployment
+    variables:
+      host:
+        default: localhost
+      port:
+        default: "3000"
+
+tags:
+  - name: Board
+    description: Board settings and full state retrieval
+  - name: Columns
+    description: Kanban column management
+  - name: Cards
+    description: Task card management
+  - name: Members
+    description: Family member management
+  - name: System
+    description: Health checks and system endpoints
+
+paths:
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: Returns the health status of the API server
+      operationId: getHealth
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                timestamp: "2025-12-17T10:30:00.000Z"
+
+  /api/board:
+    get:
+      tags:
+        - Board
+      summary: Get full board state
+      description: Returns the complete board state including all columns, cards, and members
+      operationId: getBoard
+      responses:
+        "200":
+          description: Full board state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardFull"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      tags:
+        - Board
+      summary: Update board settings
+      description: Update board name and theme
+      operationId: updateBoard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BoardUpdate"
+            example:
+              name: Family HQ
+              theme: dark
+      responses:
+        "200":
+          description: Updated board settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Name is required
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/board/export:
+    get:
+      tags:
+        - Board
+      summary: Export board data
+      description: Download the complete board data as a JSON file for backup
+      operationId: exportBoard
+      responses:
+        "200":
+          description: Board data JSON file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoardExport"
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: Attachment filename
+              example: attachment; filename=kanban-export.json
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/export:
+    get:
+      tags:
+        - Board
+      summary: Export board data (alias)
+      description: Redirects to /api/board/export
+      operationId: exportBoardAlias
+      responses:
+        "302":
+          description: Redirect to /api/board/export
+
+  /api/columns:
+    get:
+      tags:
+        - Columns
+      summary: Get all columns
+      description: Returns all columns ordered by orderIndex
+      operationId: getColumns
+      responses:
+        "200":
+          description: List of columns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Column"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      tags:
+        - Columns
+      summary: Create a new column
+      description: Create a new column with the specified title
+      operationId: createColumn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ColumnCreate"
+            example:
+              title: Review
+              orderIndex: 2
+      responses:
+        "201":
+          description: Created column
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Column"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Title is required
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/columns/{id}:
+    put:
+      tags:
+        - Columns
+      summary: Update a column
+      description: Update a column's title and/or order
+      operationId: updateColumn
+      parameters:
+        - $ref: "#/components/parameters/ColumnId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ColumnUpdate"
+            example:
+              title: In Review
+              orderIndex: 3
+      responses:
+        "200":
+          description: Updated column
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Column"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Column not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Column not found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Columns
+      summary: Delete a column
+      description: Delete a column and all its cards. At least one column must remain.
+      operationId: deleteColumn
+      parameters:
+        - $ref: "#/components/parameters/ColumnId"
+      responses:
+        "204":
+          description: Column deleted successfully
+        "400":
+          description: Cannot delete the last column
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Cannot delete the last column
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/columns/reorder:
+    post:
+      tags:
+        - Columns
+      summary: Reorder columns
+      description: Update the order of multiple columns at once
+      operationId: reorderColumns
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderRequest"
+            example:
+              orders:
+                - id: 1
+                  orderIndex: 0
+                - id: 2
+                  orderIndex: 1
+                - id: 3
+                  orderIndex: 2
+      responses:
+        "200":
+          description: Updated columns list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Column"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Orders must be an array
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/cards:
+    get:
+      tags:
+        - Cards
+      summary: Get all cards
+      description: Returns all cards across all columns
+      operationId: getCards
+      responses:
+        "200":
+          description: List of cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Card"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      tags:
+        - Cards
+      summary: Create a new card
+      description: Create a new task card in the specified column
+      operationId: createCard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardCreate"
+            example:
+              columnId: 1
+              title: Buy groceries
+              description: Milk, eggs, bread
+              assigneeId: 2
+              emoji: "🛒"
+              tags:
+                - shopping
+                - urgent
+              dueDate: "2025-12-20"
+      responses:
+        "201":
+          description: Created card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingTitle:
+                  value:
+                    error: Title is required
+                missingColumn:
+                  value:
+                    error: Column ID is required
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/cards/{id}:
+    put:
+      tags:
+        - Cards
+      summary: Update a card
+      description: Update card details including moving to a different column
+      operationId: updateCard
+      parameters:
+        - $ref: "#/components/parameters/CardId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardUpdate"
+            example:
+              title: Buy groceries (done)
+              columnId: 4
+              assigneeId: 2
+      responses:
+        "200":
+          description: Updated card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Card"
+        "404":
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Card not found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Cards
+      summary: Delete a card
+      description: Permanently delete a card
+      operationId: deleteCard
+      parameters:
+        - $ref: "#/components/parameters/CardId"
+      responses:
+        "204":
+          description: Card deleted successfully
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/cards/reorder:
+    post:
+      tags:
+        - Cards
+      summary: Reorder cards
+      description: Update the order and/or column of multiple cards at once (used for drag-and-drop)
+      operationId: reorderCards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardReorderRequest"
+            example:
+              orders:
+                - id: 5
+                  columnId: 2
+                  orderIndex: 0
+                - id: 3
+                  columnId: 2
+                  orderIndex: 1
+      responses:
+        "200":
+          description: Updated cards list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Card"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Orders must be an array
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/members:
+    get:
+      tags:
+        - Members
+      summary: Get all members
+      description: Returns all family members
+      operationId: getMembers
+      responses:
+        "200":
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      tags:
+        - Members
+      summary: Create a new member
+      description: Add a new family member
+      operationId: createMember
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberCreate"
+            example:
+              name: Alice
+              color: "#ec4899"
+              avatar: "👩"
+      responses:
+        "201":
+          description: Created member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Name is required
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/members/{id}:
+    put:
+      tags:
+        - Members
+      summary: Update a member
+      description: Update member details
+      operationId: updateMember
+      parameters:
+        - $ref: "#/components/parameters/MemberId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberUpdate"
+            example:
+              name: Alice Smith
+              color: "#f43f5e"
+              avatar: "👩‍💻"
+      responses:
+        "200":
+          description: Updated member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Member not found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Members
+      summary: Delete a member
+      description: Remove a family member. Cards assigned to this member will have their assignee cleared.
+      operationId: deleteMember
+      parameters:
+        - $ref: "#/components/parameters/MemberId"
+      responses:
+        "204":
+          description: Member deleted successfully
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  parameters:
+    ColumnId:
+      name: id
+      in: path
+      required: true
+      description: Column ID
+      schema:
+        type: integer
+        example: 1
+
+    CardId:
+      name: id
+      in: path
+      required: true
+      description: Card ID
+      schema:
+        type: integer
+        example: 1
+
+    MemberId:
+      name: id
+      in: path
+      required: true
+      description: Member ID
+      schema:
+        type: integer
+        example: 1
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          description: Health status
+        timestamp:
+          type: string
+          format: date-time
+          description: Current server timestamp
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+
+    Board:
+      type: object
+      required:
+        - id
+        - name
+        - theme
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: Board ID (always 1 for single-board setup)
+          example: 1
+        name:
+          type: string
+          description: Board display name
+          example: Family Kanban
+        theme:
+          type: string
+          enum: [light, dark]
+          description: UI theme
+          example: light
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    BoardFull:
+      allOf:
+        - $ref: "#/components/schemas/Board"
+        - type: object
+          required:
+            - columns
+            - cards
+            - members
+          properties:
+            columns:
+              type: array
+              items:
+                $ref: "#/components/schemas/Column"
+            cards:
+              type: array
+              items:
+                $ref: "#/components/schemas/Card"
+            members:
+              type: array
+              items:
+                $ref: "#/components/schemas/Member"
+
+    BoardUpdate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Board display name
+          minLength: 1
+          maxLength: 100
+        theme:
+          type: string
+          enum: [light, dark]
+          description: UI theme
+
+    BoardExport:
+      type: object
+      required:
+        - board
+        - columns
+        - cards
+        - members
+        - exportedAt
+      properties:
+        board:
+          $ref: "#/components/schemas/Board"
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/Column"
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/Member"
+        exportedAt:
+          type: string
+          format: date-time
+          description: Export timestamp
+
+    Column:
+      type: object
+      required:
+        - id
+        - board_id
+        - title
+        - order_index
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: Column ID
+          example: 1
+        board_id:
+          type: integer
+          description: Parent board ID
+          example: 1
+        title:
+          type: string
+          description: Column title
+          example: In Progress
+        order_index:
+          type: integer
+          description: Display order (0-based)
+          example: 2
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ColumnCreate:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: Column title
+          minLength: 1
+          maxLength: 100
+        orderIndex:
+          type: integer
+          description: Display order (defaults to end)
+          minimum: 0
+
+    ColumnUpdate:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          description: Column title
+          minLength: 1
+          maxLength: 100
+        orderIndex:
+          type: integer
+          description: Display order
+          minimum: 0
+
+    Card:
+      type: object
+      required:
+        - id
+        - board_id
+        - column_id
+        - title
+        - order_index
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: Card ID
+          example: 1
+        board_id:
+          type: integer
+          description: Parent board ID
+          example: 1
+        column_id:
+          type: integer
+          description: Parent column ID
+          example: 2
+        title:
+          type: string
+          description: Card title
+          example: Buy groceries
+        description:
+          type: string
+          nullable: true
+          description: Card description
+          example: Milk, eggs, bread
+        assignee_id:
+          type: integer
+          nullable: true
+          description: Assigned member ID
+          example: 1
+        color:
+          type: string
+          nullable: true
+          description: Card color (hex)
+          example: "#f59e0b"
+        emoji:
+          type: string
+          nullable: true
+          description: Card emoji
+          example: "🛒"
+        tags:
+          type: string
+          nullable: true
+          description: JSON array of tags
+          example: '["shopping","urgent"]'
+        due_date:
+          type: string
+          nullable: true
+          format: date
+          description: Due date
+          example: "2025-12-20"
+        order_index:
+          type: integer
+          description: Order within column
+          example: 0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CardCreate:
+      type: object
+      required:
+        - columnId
+        - title
+      properties:
+        columnId:
+          type: integer
+          description: Target column ID
+        title:
+          type: string
+          description: Card title
+          minLength: 1
+          maxLength: 500
+        description:
+          type: string
+          nullable: true
+          description: Card description
+          maxLength: 5000
+        assigneeId:
+          type: integer
+          nullable: true
+          description: Assigned member ID
+        color:
+          type: string
+          nullable: true
+          description: Card color (hex)
+          pattern: "^#[0-9a-fA-F]{6}$"
+        emoji:
+          type: string
+          nullable: true
+          description: Card emoji
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tag list
+        dueDate:
+          type: string
+          nullable: true
+          format: date
+          description: Due date
+        orderIndex:
+          type: integer
+          description: Order within column (defaults to end)
+          minimum: 0
+
+    CardUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Card title
+          minLength: 1
+          maxLength: 500
+        description:
+          type: string
+          nullable: true
+          description: Card description
+          maxLength: 5000
+        columnId:
+          type: integer
+          description: Target column ID (for moving cards)
+        assigneeId:
+          type: integer
+          nullable: true
+          description: Assigned member ID
+        color:
+          type: string
+          nullable: true
+          description: Card color (hex)
+          pattern: "^#[0-9a-fA-F]{6}$"
+        emoji:
+          type: string
+          nullable: true
+          description: Card emoji
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tag list
+        dueDate:
+          type: string
+          nullable: true
+          format: date
+          description: Due date
+        orderIndex:
+          type: integer
+          description: Order within column
+          minimum: 0
+
+    Member:
+      type: object
+      required:
+        - id
+        - name
+        - color
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: Member ID
+          example: 1
+        name:
+          type: string
+          description: Member name
+          example: Alice
+        color:
+          type: string
+          description: Member color (hex)
+          example: "#ec4899"
+        avatar:
+          type: string
+          nullable: true
+          description: Member avatar/emoji
+          example: "👩"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    MemberCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Member name
+          minLength: 1
+          maxLength: 100
+        color:
+          type: string
+          description: Member color (hex, defaults to #6366f1)
+          pattern: "^#[0-9a-fA-F]{6}$"
+        avatar:
+          type: string
+          nullable: true
+          description: Member avatar/emoji
+
+    MemberUpdate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Member name
+          minLength: 1
+          maxLength: 100
+        color:
+          type: string
+          description: Member color (hex)
+          pattern: "^#[0-9a-fA-F]{6}$"
+        avatar:
+          type: string
+          nullable: true
+          description: Member avatar/emoji
+
+    ReorderRequest:
+      type: object
+      required:
+        - orders
+      properties:
+        orders:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - orderIndex
+            properties:
+              id:
+                type: integer
+                description: Item ID
+              orderIndex:
+                type: integer
+                description: New order index
+                minimum: 0
+
+    CardReorderRequest:
+      type: object
+      required:
+        - orders
+      properties:
+        orders:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - columnId
+              - orderIndex
+            properties:
+              id:
+                type: integer
+                description: Card ID
+              columnId:
+                type: integer
+                description: Target column ID
+              orderIndex:
+                type: integer
+                description: New order index within column
+                minimum: 0
+
