@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import xss from 'xss';
-import { getBoard, updateBoard, getColumns, getCards, getMembers, exportBoard } from '../db/index.js';
+import { readFileSync, existsSync } from 'fs';
+import { basename } from 'path';
+import { getBoard, updateBoard, getColumns, getCards, getMembers, exportBoard, getDatabasePath } from '../db/index.js';
 
 const router = Router();
 
@@ -54,6 +56,28 @@ router.get('/export', (req, res) => {
     } catch (error) {
         console.error('Error exporting board:', error);
         res.status(500).json({ error: 'Failed to export board' });
+    }
+});
+
+// Download database file
+router.get('/download-db', (req, res) => {
+    try {
+        const dbPath = getDatabasePath();
+        
+        if (!existsSync(dbPath)) {
+            return res.status(404).json({ error: 'Database file not found' });
+        }
+        
+        const dbFile = readFileSync(dbPath);
+        const filename = basename(dbPath) || 'board.db';
+        
+        res.setHeader('Content-Type', 'application/x-sqlite3');
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+        res.setHeader('Content-Length', dbFile.length);
+        res.send(dbFile);
+    } catch (error) {
+        console.error('Error downloading database:', error);
+        res.status(500).json({ error: 'Failed to download database' });
     }
 });
 

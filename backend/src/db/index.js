@@ -8,6 +8,10 @@ const __dirname = dirname(__filename);
 
 const DATA_PATH = process.env.DATA_PATH || '/data/board.db';
 
+export function getDatabasePath() {
+    return DATA_PATH;
+}
+
 let db;
 
 export function initDatabase() {
