@@ -207,3 +207,17 @@ export function exportBoard() {
     };
 }
 
+// Create a complete database backup (includes WAL checkpoint)
+// This checkpoints the WAL file to ensure all data is in the main database file
+export function createDatabaseBackup() {
+    const sourceDb = getDb();
+    
+    // Checkpoint the WAL to merge all changes into the main database file
+    // This ensures the downloaded file contains all data
+    sourceDb.pragma('wal_checkpoint(TRUNCATE)');
+    
+    // Now read the main database file which contains all data
+    const dbPath = getDatabasePath();
+    return readFileSync(dbPath);
+}
+

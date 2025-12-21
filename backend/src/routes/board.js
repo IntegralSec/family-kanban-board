@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import xss from 'xss';
-import { readFileSync, existsSync } from 'fs';
+import { existsSync } from 'fs';
 import { basename } from 'path';
-import { getBoard, updateBoard, getColumns, getCards, getMembers, exportBoard, getDatabasePath } from '../db/index.js';
+import { getBoard, updateBoard, getColumns, getCards, getMembers, exportBoard, getDatabasePath, createDatabaseBackup } from '../db/index.js';
 
 const router = Router();
 
@@ -68,7 +68,9 @@ router.get('/download-db', (req, res) => {
             return res.status(404).json({ error: 'Database file not found' });
         }
         
-        const dbFile = readFileSync(dbPath);
+        // Create a complete backup that includes WAL checkpoint
+        // This ensures all data is included in the downloaded file
+        const dbFile = createDatabaseBackup();
         const filename = basename(dbPath) || 'board.db';
         
         res.setHeader('Content-Type', 'application/x-sqlite3');

@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { readFileSync } from 'fs';
+import yaml from 'js-yaml';
+import swaggerUi from 'swagger-ui-express';
 import { initDatabase } from './db/index.js';
 import boardRoutes from './routes/board.js';
 import columnsRoutes from './routes/columns.js';
@@ -34,6 +37,47 @@ app.get('/api/export', (req, res) => {
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Swagger UI - Load OpenAPI spec
+try {
+    // Try multiple possible paths (Docker and local development)
+    const possiblePaths = [
+        join(__dirname, '../../openapi.yaml'),  // Docker: /app/backend/src -> /app/openapi.yaml
+        join(__dirname, '../../../openapi.yaml'), // Local: backend/src -> openapi.yaml
+        join(process.cwd(), 'openapi.yaml'),    // Current working directory
+        '/app/openapi.yaml'                      // Absolute Docker path
+    ];
+    
+    let openApiFile = null;
+    let openApiPath = null;
+    
+    for (const path of possiblePaths) {
+        try {
+            openApiFile = readFileSync(path, 'utf8');
+            openApiPath = path;
+            break;
+        } catch (err) {
+            // Try next path
+            continue;
+        }
+    }
+    
+    if (!openApiFile) {
+        throw new Error(`Could not find openapi.yaml in any of: ${possiblePaths.join(', ')}`);
+    }
+    
+    const openApiSpec = yaml.load(openApiFile);
+    
+    // Serve Swagger UI
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, {
+        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: 'Family Kanban Board API Documentation'
+    }));
+    
+    console.log(`   API Docs: http://localhost:${PORT}/api-docs (loaded from ${openApiPath})`);
+} catch (error) {
+    console.warn('⚠️  Could not load OpenAPI spec for Swagger UI:', error.message);
+}
 
 // Serve static frontend files
 app.use(express.static(join(__dirname, '../../frontend/dist')));

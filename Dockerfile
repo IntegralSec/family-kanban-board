@@ -51,6 +51,9 @@ COPY --from=backend-builder /app/backend/node_modules ./backend/node_modules
 COPY backend/src ./backend/src
 COPY backend/package.json ./backend/
 
+# Copy OpenAPI spec for Swagger UI
+COPY openapi.yaml ./openapi.yaml
+
 # Copy built frontend
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
