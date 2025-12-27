@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      # Mount source files but NOT node_modules (use the ones built in Docker)
+      - ./backend/src:/app/backend/src:ro
+      - ./openapi.yaml:/app/openapi.yaml:ro
+    working_dir: /app/backend
+    environment:
+      - NODE_ENV=test
+      - DATA_PATH=/tmp/kanban-test.db
+    command: npm test
+

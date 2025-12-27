@@ -1,0 +1,26 @@
+# Test Dockerfile for running Jest tests
+FROM node:20-alpine
+
+WORKDIR /app/backend
+
+# Install build dependencies for better-sqlite3
+RUN apk add --no-cache python3 make g++
+
+# Copy package files
+COPY backend/package*.json ./
+
+# Install all dependencies (including dev dependencies for tests)
+# This will build better-sqlite3 native bindings
+RUN npm install
+
+# Copy source files
+COPY backend/src ./src
+COPY openapi.yaml ../openapi.yaml
+
+# Verify better-sqlite3 was built
+RUN test -f node_modules/better-sqlite3/build/Release/better_sqlite3.node || \
+    (echo "ERROR: better-sqlite3 native bindings not found!" && exit 1)
+
+# Default command (can be overridden)
+CMD ["npm", "test"]
+
