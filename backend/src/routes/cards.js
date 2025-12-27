@@ -83,19 +83,7 @@ router.put('/:id', (req, res) => {
     }
 });
 
-// Delete a card
-router.delete('/:id', (req, res) => {
-    try {
-        const { id } = req.params;
-        deleteCard(parseInt(id));
-        res.status(204).send();
-    } catch (error) {
-        console.error('Error deleting card:', error);
-        res.status(500).json({ error: 'Failed to delete card' });
-    }
-});
-
-// Reorder cards (for drag-and-drop)
+// Reorder cards (for drag-and-drop) - must come before /:id route
 router.post('/reorder', (req, res) => {
     try {
         const { orders } = req.body;
@@ -110,6 +98,18 @@ router.post('/reorder', (req, res) => {
     } catch (error) {
         console.error('Error reordering cards:', error);
         res.status(500).json({ error: 'Failed to reorder cards' });
+    }
+});
+
+// Delete a card
+router.delete('/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        deleteCard(parseInt(id));
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting card:', error);
+        res.status(500).json({ error: 'Failed to delete card' });
     }
 });
 

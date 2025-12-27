@@ -16,6 +16,16 @@ let db;
 
 export function initDatabase() {
     try {
+        // Close existing database connection if it exists
+        if (db) {
+            try {
+                db.close();
+            } catch (err) {
+                // Ignore errors when closing
+            }
+            db = null;
+        }
+        
         db = new Database(DATA_PATH);
         db.pragma('journal_mode = WAL');
         db.pragma('foreign_keys = ON');
